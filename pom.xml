@@ -71,8 +71,15 @@
   </dependencyManagement>
 
   <dependencies>
+    <!-- must include spring-webmvc for the DispatcherServlet, since we are removing
+    ActiveMQ's bundled Spring 4 JAR files when building the Docker image -->
     <dependency>
-      <!-- must use httpclient 4.5.12+, so it will handle 308 redirects correctly -->
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-webmvc</artifactId>
+    </dependency>
+
+    <!-- must use httpclient 4.5.12+, so it will handle 308 redirects correctly -->
+    <dependency>
       <groupId>org.apache.httpcomponents</groupId>
       <artifactId>httpclient</artifactId>
       <version>4.5.13</version>
