@@ -1,0 +1,27 @@
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+  http://camel.apache.org/schema/spring http://camel.apache.org/schema/spring/camel-spring.xsd">
+
+  <routeContext xmlns="http://camel.apache.org/schema/spring" id="Plastron">
+    <route id="edu.umd.lib.camel.routes.queue.plastron.jobs.status">
+      <from uri="activemq:plastron.jobs.status"/>
+
+      <filter>
+        <header>PlastronStatusURL</header>
+        <removeHeaders pattern="CamelHttp*"/>
+        <setHeader headerName="CamelHttpUri">
+          <header>PlastronStatusURL</header>
+        </setHeader>
+        <setHeader headerName="CamelHttpMethod">
+          <constant>POST</constant>
+        </setHeader>
+        <setHeader headerName="Content-Type">
+          <constant>application/json</constant>
+        </setHeader>
+        <log loggingLevel="DEBUG" message="Sending ${body} to ${header.CamelHttpUri}"/>
+        <to uri="http4://archelon"/>
+      </filter>
+    </route>
+  </routeContext>
+</beans>
