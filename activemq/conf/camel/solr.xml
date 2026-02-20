@@ -291,35 +291,43 @@ handle = dcterms:identifier[^^umdtype:handle] :: xsd:string;
             <constant>update</constant>
           </setProperty>
         </when>
-      </choice>
-
-      <removeHeaders pattern="CamelHttp*"/>
-
-      <choice>
-        <when>
-          <description>Update initiated from plastrond-http</description>
-          <simple>${header.CamelFcrepoUserAgent} starts with "plastrond-http"</simple>
-          <setHeader headerName="CamelHttpUri">
-            <simple>${sysenv.SOLRIZER_ENDPOINT}?uri=${header.CamelFcrepoUri}&amp;command=${exchangeProperty.solrCommand}&amp;plastron-cache-enabled=no</simple>
-          </setHeader>
-        </when>
         <otherwise>
-          <setHeader headerName="CamelHttpUri">
-            <simple>${sysenv.SOLRIZER_ENDPOINT}?uri=${header.CamelFcrepoUri}&amp;command=${exchangeProperty.solrCommand}</simple>
-          </setHeader>
+          <log loggingLevel="ERROR" message="Unrecognized event: ${header.CamelFcrepoEventName}"/>
+          <stop/>
         </otherwise>
       </choice>
 
-      <setHeader headerName="CamelHttpMethod">
-        <constant>GET</constant>
-      </setHeader>
+      <filter>
+        <exchangeProperty>solrCommand</exchangeProperty>
 
-      <log loggingLevel="INFO" message="Started Solrizer processing of ${header.CamelFcrepoUri}"/>
-      <log loggingLevel="DEBUG" message="Solrizer request URL: ${header.CamelHttpUri}"/>
-      <to uri="http4://solrizer"/>
-      <log loggingLevel="DEBUG" message="Solrizer response: ${body}"/>
-      <log loggingLevel="INFO" message="Finished Solrizer processing of ${header.CamelFcrepoUri}"/>
-      <to uri="direct:solr.SendUpdate"/>
+        <removeHeaders pattern="CamelHttp*"/>
+
+        <choice>
+          <when>
+            <description>Update initiated from plastrond-http</description>
+            <simple>${header.CamelFcrepoUserAgent} starts with "plastrond-http"</simple>
+            <setHeader headerName="CamelHttpUri">
+              <simple>${sysenv.SOLRIZER_ENDPOINT}?uri=${header.CamelFcrepoUri}&amp;command=${exchangeProperty.solrCommand}&amp;plastron-cache-enabled=no</simple>
+            </setHeader>
+          </when>
+          <otherwise>
+            <setHeader headerName="CamelHttpUri">
+              <simple>${sysenv.SOLRIZER_ENDPOINT}?uri=${header.CamelFcrepoUri}&amp;command=${exchangeProperty.solrCommand}</simple>
+            </setHeader>
+          </otherwise>
+        </choice>
+
+        <setHeader headerName="CamelHttpMethod">
+          <constant>GET</constant>
+        </setHeader>
+
+        <log loggingLevel="INFO" message="Started Solrizer processing of ${header.CamelFcrepoUri}"/>
+        <log loggingLevel="DEBUG" message="Solrizer request URL: ${header.CamelHttpUri}"/>
+        <to uri="http4://solrizer"/>
+        <log loggingLevel="DEBUG" message="Solrizer response: ${body}"/>
+        <log loggingLevel="INFO" message="Finished Solrizer processing of ${header.CamelFcrepoUri}"/>
+        <to uri="direct:solr.SendUpdate"/>
+      </filter>
     </route>
 
     <route id="edu.umd.lib.camel.routes.solr.CreateAddCommand">

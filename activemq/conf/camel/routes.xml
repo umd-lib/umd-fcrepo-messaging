@@ -42,7 +42,7 @@
         <description>extracts the repo path from the top-level resource that the
         current resource is a part of (or is)</description>
         <groovy>
-          def match = (headers["CamelFcrepoPath"] =~ $/(/dc/\d{4}/\d+/../../../../.{8}-.{4}-.{4}-.{4}-.{12})/$)
+          def match = (headers["CamelFcrepoPath"] =~ $/((/dc/\d{4}/\d+|/pcdm)/../../../../.{8}-.{4}-.{4}-.{4}-.{12})/$)
           if (match) {
             result = match[0][1]
           }
@@ -51,6 +51,7 @@
       <setHeader headerName="UMDIsTopLevelResource">
         <simple resultType="java.lang.Boolean">${header.CamelFcrepoPath} == ${header.CamelFcrepoTopLevelResourcePath}</simple>
       </setHeader>
+      <log loggingLevel="DEBUG" message="${header.CamelFcrepoUri} is a top-level resource? ${header.UMDIsTopLevelResource}"/>
       <log loggingLevel="DEBUG" message="Event user: ${header.CamelFcrepoUser}"/>
       <log loggingLevel="DEBUG" message="Event user agent: ${header.CamelFcrepoUserAgent}"/>
       <log loggingLevel="INFO" message="Routing event for resource with URI: ${header.CamelFcrepoUri}"/>
