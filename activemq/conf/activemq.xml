@@ -203,5 +203,8 @@
     -->
     <import resource="jetty-spring.xml"/>
 
+    <!-- UMD Camel Routes -->
+    <import resource="camel.xml"/>
+
 </beans>
 <!-- END SNIPPET: example -->

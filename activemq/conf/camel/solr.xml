@@ -4,133 +4,118 @@
   http://camel.apache.org/schema/spring http://camel.apache.org/schema/spring/camel-spring.xsd">
 
   <routeContext xmlns="http://camel.apache.org/schema/spring" id="Solr">
-    <route id="edu.umd.lib.camel.routes.queue.index.solr">
-      <description>Does initial filtering of event messages to only process resources
-      with the RDF types `pcdm:Object`, `pcdm:File`, `pcdm:Collection`, `oa:Annotation`,
-      or `ore:Proxy`. Those event messages are routed to the Solrizer indexing processor.</description>
+    <route id="edu.umd.lib.camel.routes.queue.index.solr"
+           description="Does initial filtering of event messages to only process resources
+            with the RDF types `pcdm:Object`, `pcdm:File`, `pcdm:Collection`, `oa:Annotation`,
+            or `ore:Proxy`. Those event messages are routed to the Solrizer indexing processor.">
       <from uri="activemq:index.solr"/>
       <choice>
-        <when>
-          <description>resource is a PCDM, OA, or ORE resource</description>
+        <when description="resource is a PCDM, OA, or ORE resource">
           <simple>
-            "http://pcdm.org/models#Object" in ${header.CamelFcrepoResourceType}
-            || "http://pcdm.org/models#File" in ${header.CamelFcrepoResourceType}
-            || "http://pcdm.org/models#Collection" in ${header.CamelFcrepoResourceType}
-            || "http://www.w3.org/ns/oa#Annotation" in ${header.CamelFcrepoResourceType}
-            || "http://www.openarchives.org/ore/terms/Proxy" in ${header.CamelFcrepoResourceType}
+            "http://pcdm.org/models#Object" in ${header.FcrepoResourceType}
+            || "http://pcdm.org/models#File" in ${header.FcrepoResourceType}
+            || "http://pcdm.org/models#Collection" in ${header.FcrepoResourceType}
+            || "http://www.w3.org/ns/oa#Annotation" in ${header.FcrepoResourceType}
+            || "http://www.openarchives.org/ore/terms/Proxy" in ${header.FcrepoResourceType}
           </simple>
-          <log loggingLevel="INFO" message="${header.CamelFcrepoUri} has a recognized RDF type for Solr indexing"/>
+          <log loggingLevel="INFO" message="${header.FcrepoUri} has a recognized RDF type for Solr indexing"/>
           <to uri="direct:solr.Index"/>
         </when>
-        <when>
-          <description>resource that was deleted from the repository</description>
-          <simple>${header.CamelFcrepoEventName} == "delete"</simple>
-          <log loggingLevel="INFO" message="Request to delete ${header.CamelFcrepoUri} from Solr index"/>
+        <when description="resource that was deleted from the repository">
+          <simple>${header.FcrepoEventName} == "delete"</simple>
+          <log loggingLevel="INFO" message="Request to delete ${header.FcrepoUri} from Solr index"/>
           <to uri="direct:solr.Index"/>
         </when>
         <otherwise>
-          <log loggingLevel="INFO" message="Skipping Solr indexing of ${header.CamelFcrepoUri} because it is not a recognized RDF type"/>
+          <log loggingLevel="INFO" message="Skipping Solr indexing of ${header.FcrepoUri} because it is not a recognized RDF type"/>
           <stop/>
         </otherwise>
       </choice>
     </route>
 
-    <route id="edu.umd.lib.camel.routes.solr.Index">
-      <description>Main route for adding, updating, or removing resources from the
+    <route id="edu.umd.lib.camel.routes.solr.Index" description="Main route for adding, updating, or removing resources from the
       Solr `fcrepo` index. Uses the Solrizer HTTP microservice to convert the resource's
-      RDF to a JSON Solr document.</description>
+      RDF to a JSON Solr document.">
       <from uri="direct:solr.Index"/>
 
-      <setHeader headerName="SolrUpdateEndpoint">
+      <setHeader name="SolrUpdateEndpoint">
         <simple>${sysenv.SOLR_UPDATE_ENDPOINT}</simple>
       </setHeader>
       <choice>
-        <when>
-          <description>delete event</description>
-          <simple>${header.CamelFcrepoEventName} starts with "delete"</simple>
+        <when description="delete event">
+          <simple>${header.FcrepoEventName} startsWith "delete"</simple>
           <to uri="direct:solr.DeleteFromIndex"/>
         </when>
-        <when>
-          <description>append event</description>
-          <simple>${header.CamelFcrepoUserAgent} contains '(attach)'</simple>
+        <when description="append event">
+          <simple>${header.FcrepoUserAgent} contains '(attach)'</simple>
           <!-- Per LIBFCREPO-1811, we currently ignore events created by the plastron attach
                command for the purpose of indexing since there is an error where the object
                and page get deleted from Solr when the new file is added to Solr.
                See https://umd-dit.atlassian.net/browse/LIBFCREPO-1811 -->
-          <log loggingLevel="WARN" message="Stopping indexing for ${header.CamelFcrepoUri} on attach event due to LIBFCREPO-1811 bug"/>
+          <log loggingLevel="WARN" message="Stopping indexing for ${header.FcrepoUri} on attach event due to LIBFCREPO-1811 bug"/>
           <stop/>
         </when>
-        <otherwise>
-          <description>any other event</description>
+        <otherwise description="any other event">
           <to uri="activemq:solrizer"/>
         </otherwise>
       </choice>
     </route>
 
-    <route id="edu.umd.lib.camel.routes.solr.AddToIndex">
-      <description>Pipeline route to add the Solr document in the current
+    <route id="edu.umd.lib.camel.routes.solr.AddToIndex" description="Pipeline route to add the Solr document in the current
         message body to the Solr index at the HTTP endpoint given in the
-        `SolrUpdateEndpoint` header.</description>
+        `SolrUpdateEndpoint` header.">
       <from uri="direct:solr.AddToIndex"/>
       <to uri="direct:solr.CreateAddCommand"/>
       <to uri="direct:solr.SendUpdate"/>
-      <log loggingLevel="INFO" message="Indexed ${header.CamelFcrepoUri} to ${header.SolrUpdateEndpoint}"/>
+      <log loggingLevel="INFO" message="Indexed ${header.FcrepoUri} to ${header.SolrUpdateEndpoint}"/>
     </route>
 
-    <route id="edu.umd.lib.camel.routes.solr.DeleteFromIndex">
-      <description>Pipeline route to delete from Solr a document whose `id`
-        is given in the `CamelFcrepoUri` header.</description>
+    <route id="edu.umd.lib.camel.routes.solr.DeleteFromIndex" description="Pipeline route to delete from Solr a document whose `id`
+        is given in the `FcrepoUri` header.">
       <from uri="direct:solr.DeleteFromIndex"/>
       <to uri="direct:solr.CreateDeleteCommand"/>
       <to uri="direct:solr.SendUpdate"/>
-      <log loggingLevel="INFO" message="Removed ${header.CamelFcrepoUri} from ${header.SolrUpdateEndpoint}"/>
+      <log loggingLevel="INFO" message="Removed ${header.FcrepoUri} from ${header.SolrUpdateEndpoint}"/>
     </route>
 
-    <route id="edu.umd.lib.camel.routes.queue.solrizer">
-      <description>Uses the Solrizer service located at the URL given in the
+    <route id="edu.umd.lib.camel.routes.queue.solrizer" description="Uses the Solrizer service located at the URL given in the
         `SOLRIZER_ENDPOINT` environment variable to set the message body to the
         content of a Solr document in JSON format for the resource with the URI
-        given in the `CamelFcrepoUri` header.</description>
+        given in the `FcrepoUri` header.">
       <from uri="activemq:solrizer?concurrentConsumers={{env:SOLRIZER_CONCURRENT_CONSUMERS:8}}"/>
-      <choice>
-        <description>Select appropriate `command` query parameter for Solrizer
-          given the event type (import, create, update, or reindex)</description>
-        <when>
-          <description>import event</description>
-          <simple>${header.CamelFcrepoEventName} starts with "import"</simple>
+      <choice description="Select appropriate `command` query parameter for Solrizer
+          given the event type (import, create, update, or reindex)">
+        <when description="import event">
+          <simple>${header.FcrepoEventName} startsWith "import"</simple>
           <!-- filter out non-top-level resources when indexing after an import
                since Solrizer will include the child resources itself -->
-          <filter>
-            <description>is a top-level resource</description>
+          <filter description="is a top-level resource">
             <simple>${header.UMDIsTopLevelResource}</simple>
-            <setProperty propertyName="solrCommand">
+            <setProperty name="solrCommand">
               <constant>add</constant>
             </setProperty>
           </filter>
         </when>
-        <when>
-          <description>create event</description>
-          <simple>${header.CamelFcrepoEventName} starts with "create"</simple>
-          <setProperty propertyName="solrCommand">
+        <when description="create event">
+          <simple>${header.FcrepoEventName} startsWith "create"</simple>
+          <setProperty name="solrCommand">
             <constant>add</constant>
           </setProperty>
         </when>
-        <when>
-          <description>update event</description>
-          <simple>${header.CamelFcrepoEventName} starts with "update"</simple>
-          <setProperty propertyName="solrCommand">
+        <when description="update event">
+          <simple>${header.FcrepoEventName} startsWith "update"</simple>
+          <setProperty name="solrCommand">
             <constant>update</constant>
           </setProperty>
         </when>
-        <when>
-          <description>reindex event</description>
-          <simple>${header.CamelFcrepoEventName} starts with "reindex"</simple>
-          <setProperty propertyName="solrCommand">
+        <when description="reindex event">
+          <simple>${header.FcrepoEventName} startsWith "reindex"</simple>
+          <setProperty name="solrCommand">
             <constant>update</constant>
           </setProperty>
         </when>
         <otherwise>
-          <log loggingLevel="ERROR" message="Unrecognized event: ${header.CamelFcrepoEventName}"/>
+          <log loggingLevel="ERROR" message="Unrecognized event: ${header.FcrepoEventName}"/>
           <stop/>
         </otherwise>
       </choice>
@@ -141,42 +126,40 @@
         <removeHeaders pattern="CamelHttp*"/>
 
         <choice>
-          <when>
-            <description>Update initiated from plastrond-http</description>
-            <simple>${header.CamelFcrepoUserAgent} starts with "plastrond-http"</simple>
-            <setHeader headerName="CamelHttpUri">
-              <simple>${sysenv.SOLRIZER_ENDPOINT}?uri=${header.CamelFcrepoUri}&amp;command=${exchangeProperty.solrCommand}&amp;plastron-cache-enabled=no</simple>
+          <when description="Update initiated from plastrond-http">
+            <simple>${header.FcrepoUserAgent} startsWith "plastrond-http"</simple>
+            <setHeader name="CamelHttpUri">
+              <simple>${sysenv.SOLRIZER_ENDPOINT}?uri=${header.FcrepoUri}&amp;command=${exchangeProperty.solrCommand}&amp;plastron-cache-enabled=no</simple>
             </setHeader>
           </when>
           <otherwise>
-            <setHeader headerName="CamelHttpUri">
-              <simple>${sysenv.SOLRIZER_ENDPOINT}?uri=${header.CamelFcrepoUri}&amp;command=${exchangeProperty.solrCommand}</simple>
+            <setHeader name="CamelHttpUri">
+              <simple>${sysenv.SOLRIZER_ENDPOINT}?uri=${header.FcrepoUri}&amp;command=${exchangeProperty.solrCommand}</simple>
             </setHeader>
           </otherwise>
         </choice>
 
-        <setHeader headerName="CamelHttpMethod">
+        <setHeader name="CamelHttpMethod">
           <constant>GET</constant>
         </setHeader>
 
-        <log loggingLevel="INFO" message="Started Solrizer processing of ${header.CamelFcrepoUri}"/>
+        <log loggingLevel="INFO" message="Started Solrizer processing of ${header.FcrepoUri}"/>
         <log loggingLevel="DEBUG" message="Solrizer request URL: ${header.CamelHttpUri}"/>
-        <to uri="http4://solrizer"/>
+        <to uri="http://solrizer"/>
         <log loggingLevel="DEBUG" message="Solrizer response: ${body}"/>
-        <log loggingLevel="INFO" message="Finished Solrizer processing of ${header.CamelFcrepoUri}"/>
+        <log loggingLevel="INFO" message="Finished Solrizer processing of ${header.FcrepoUri}"/>
         <to uri="direct:solr.SendUpdate"/>
       </filter>
     </route>
 
-    <route id="edu.umd.lib.camel.routes.solr.CreateAddCommand">
-      <description>Creates a Solr "add" command in JSON format by wrapping
+    <route id="edu.umd.lib.camel.routes.solr.CreateAddCommand" description='Creates a Solr "add" command in JSON format by wrapping
         the existing message body (assumed to be in JSON format) in a
         `{"add": {"doc": {...}}}` structure. Also sets the `Content-Type`
-        header to `application/json`.</description>
+        header to `application/json`.'>
       <from uri="direct:solr.CreateAddCommand"/>
 
-      <log loggingLevel="DEBUG" message="Creating Solr add command for ${header.CamelFcrepoUri}"/>
-      <setHeader headerName="Content-Type">
+      <log loggingLevel="DEBUG" message="Creating Solr add command for ${header.FcrepoUri}"/>
+      <setHeader name="Content-Type">
         <constant>application/json</constant>
       </setHeader>
       <setBody>
@@ -184,40 +167,39 @@
       </setBody>
     </route>
 
-    <route id="edu.umd.lib.camel.routes.solr.CreateDeleteCommand">
-      <description>Creates a Solr "delete" command in JSON format for the
-        resource with the `id` found in the `CamelFcrepoUri` header. Also
-        sets the `Content-Type` header to `application/json`.</description>
+    <route id="edu.umd.lib.camel.routes.solr.CreateDeleteCommand" description='Creates a Solr "delete" command in JSON format for the
+        resource with the `id` found in the `FcrepoUri` header. Also
+        sets the `Content-Type` header to `application/json`.'>
       <from uri="direct:solr.CreateDeleteCommand"/>
 
-      <log loggingLevel="DEBUG" message="Creating Solr delete command for ${header.CamelFcrepoUri}"/>
-      <setHeader headerName="Content-Type">
+      <log loggingLevel="DEBUG" message="Creating Solr delete command for ${header.FcrepoUri}"/>
+      <setHeader name="Content-Type">
         <constant>application/json</constant>
       </setHeader>
       <setBody>
-        <simple>{"delete":{"id":"${header.CamelFcrepoUri}"}}</simple>
+        <simple>{"delete":{"id":"${header.FcrepoUri}"}}</simple>
       </setBody>
     </route>
 
-    <route id="edu.umd.lib.camel.routes.solr.SendUpdate">
-      <description>Sends a Solr command (in the message body) to the URL in the
-        `SolrUpdateEndpoint` header as an HTTP POST request.</description>
+    <route id="edu.umd.lib.camel.routes.solr.SendUpdate"
+           description="Sends a Solr command (in the message body) to the URL in the
+            `SolrUpdateEndpoint` header as an HTTP POST request.">
       <from uri="direct:solr.SendUpdate"/>
 
       <removeHeaders pattern="CamelHttp*"/>
-      <setHeader headerName="CamelHttpUri">
+      <setHeader name="CamelHttpUri">
         <simple>${header.SolrUpdateEndpoint}?commitWithin=1000&amp;overwrite=true</simple>
       </setHeader>
-      <setHeader headerName="CamelHttpMethod">
+      <setHeader name="CamelHttpMethod">
         <constant>POST</constant>
       </setHeader>
-      <setHeader headerName="Content-Type">
+      <setHeader name="Content-Type">
         <constant>application/json</constant>
       </setHeader>
 
       <log loggingLevel="DEBUG" message="Sending ${body} to ${header.CamelHttpUri}"/>
 
-      <to uri="http4://solr"/>
+      <to uri="http://solr"/>
     </route>
 
   </routeContext>

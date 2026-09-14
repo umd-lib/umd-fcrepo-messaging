@@ -14,69 +14,69 @@
   <routeContext xmlns="http://camel.apache.org/schema/spring" id="Auditing">
     <!--
     Expected headers:
-    * CamelFcrepoUri
-    * CamelFcrepoEventId
-    * CamelFcrepoEventName
+    * FcrepoUri
+    * FcrepoEventId
+    * FcrepoEventName
     Expected environment variables:
     * AUDIT_EVENT_BASE_URI
     -->
     <route id="edu.umd.lib.camel.routes.queue.audit">
       <from uri="activemq:audit"/>
-      <log loggingLevel="DEBUG" message="Receiving audit event for ${header.CamelFcrepoUri}"/>
-      <setHeader headerName="CamelAuditEventUri">
-        <simple>${sysenv.AUDIT_EVENT_BASE_URI}${header.CamelFcrepoEventId}</simple>
+      <log loggingLevel="DEBUG" message="Receiving audit event for ${header.FcrepoUri}"/>
+      <setHeader name="AuditEventUri">
+        <simple>${sysenv.AUDIT_EVENT_BASE_URI}${header.FcrepoEventId}</simple>
       </setHeader>
       <choice>
         <when>
-          <simple>${headers.CamelFcrepoEventName} == "create binary"</simple>
-          <setHeader headerName="CamelAuditEventType">
+          <simple>${headers.FcrepoEventName} == "create binary"</simple>
+          <setHeader name="AuditEventType">
             <constant>http://id.loc.gov/vocabulary/preservation/eventType/ing</constant>
           </setHeader>
         </when>
         <when>
-          <simple>${headers.CamelFcrepoEventName} == "create RDF"</simple>
-          <setHeader headerName="CamelAuditEventType">
+          <simple>${headers.FcrepoEventName} == "create RDF"</simple>
+          <setHeader name="AuditEventType">
             <constant>http://id.loc.gov/vocabulary/preservation/eventType/cre</constant>
           </setHeader>
         </when>
         <when>
-          <simple>${headers.CamelFcrepoEventName} == "import binary"</simple>
-          <setHeader headerName="CamelAuditEventType">
+          <simple>${headers.FcrepoEventName} == "import binary"</simple>
+          <setHeader name="AuditEventType">
             <constant>http://id.loc.gov/vocabulary/preservation/eventType/ing</constant>
           </setHeader>
         </when>
         <when>
-          <simple>${headers.CamelFcrepoEventName} == "import RDF"</simple>
-          <setHeader headerName="CamelAuditEventType">
+          <simple>${headers.FcrepoEventName} == "import RDF"</simple>
+          <setHeader name="AuditEventType">
             <constant>http://id.loc.gov/vocabulary/preservation/eventType/cre</constant>
           </setHeader>
         </when>
         <when>
-          <simple>${headers.CamelFcrepoEventName} == "update binary"</simple>
-          <setHeader headerName="CamelAuditEventType">
+          <simple>${headers.FcrepoEventName} == "update binary"</simple>
+          <setHeader name="AuditEventType">
             <constant>http://fedora.info/definitions/v4/audit#contentModification</constant>
           </setHeader>
         </when>
         <when>
-          <simple>${headers.CamelFcrepoEventName} == "update RDF"</simple>
-          <setHeader headerName="CamelAuditEventType">
+          <simple>${headers.FcrepoEventName} == "update RDF"</simple>
+          <setHeader name="AuditEventType">
             <constant>http://fedora.info/definitions/v4/audit#metadataModification</constant>
           </setHeader>
         </when>
         <when>
-          <simple>${headers.CamelFcrepoEventName} == "delete binary"</simple>
-          <setHeader headerName="CamelAuditEventType">
+          <simple>${headers.FcrepoEventName} == "delete binary"</simple>
+          <setHeader name="AuditEventType">
             <constant>http://fedora.info/definitions/v4/audit#contentRemoval</constant>
           </setHeader>
         </when>
         <when>
-          <simple>${headers.CamelFcrepoEventName} == "delete RDF"</simple>
-          <setHeader headerName="CamelAuditEventType">
+          <simple>${headers.FcrepoEventName} == "delete RDF"</simple>
+          <setHeader name="AuditEventType">
             <constant>http://id.loc.gov/vocabulary/preservation/eventType/del</constant>
           </setHeader>
         </when>
       </choice>
-      <log loggingLevel="DEBUG" message="Event type for PREMIS: ${header.CamelAuditEventType}"/>
+      <log loggingLevel="DEBUG" message="Event type for PREMIS: ${header.AuditEventType}"/>
       <multicast parallelProcessing="true">
         <to uri="direct:auditing.GeneratePremis"/>
         <to uri="activemq:audit.database"/>
@@ -85,25 +85,25 @@
 
     <!--
     Expected headers:
-    * CamelAuditEventUri
-    * CamelFcrepoDateTime
-    * CamelFcrepoUser
-    * CamelFcrepoUserAgent
-    * CamelAuditEventType
+    * AuditEventUri
+    * FcrepoDateTime
+    * FcrepoUser
+    * FcrepoUserAgent
+    * AuditEventType
     -->
     <route id="edu.umd.lib.camel.routes.auditing.GeneratePremis">
       <from uri="direct:auditing.GeneratePremis"/>
       <setBody>
         <simple><![CDATA[
-<${header.CamelAuditEventUri}> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://fedora.info/definitions/v4/audit#InternalEvent> .
-<${header.CamelAuditEventUri}> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.loc.gov/premis/rdf/v1#Event> .
-<${header.CamelAuditEventUri}> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/ns/prov#InstantaneousEvent> .
+<${header.AuditEventUri}> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://fedora.info/definitions/v4/audit#InternalEvent> .
+<${header.AuditEventUri}> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.loc.gov/premis/rdf/v1#Event> .
+<${header.AuditEventUri}> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/ns/prov#InstantaneousEvent> .
 
-<${header.CamelAuditEventUri}> <http://www.loc.gov/premis/rdf/v1#hasEventDateTime> "${header.CamelFcrepoDateTime}"^^<http://www.w3.org/2001/XMLSchema#dateTime> .
-<${header.CamelAuditEventUri}> <http://www.loc.gov/premis/rdf/v1#hasEventRelatedObject> <${header.CamelFcrepoUri}> .
-<${header.CamelAuditEventUri}> <http://www.loc.gov/premis/rdf/v1#hasEventRelatedAgent> "${header.CamelFcrepoUser}"^^<http://www.w3.org/2001/XMLSchema#string>.
-<${header.CamelAuditEventUri}> <http://www.loc.gov/premis/rdf/v1#hasEventRelatedAgent> "${header.CamelFcrepoUserAgent}"^^<http://www.w3.org/2001/XMLSchema#string> .
-<${header.CamelAuditEventUri}> <http://www.loc.gov/premis/rdf/v1#hasEventType> <${header.CamelAuditEventType}> .
+<${header.AuditEventUri}> <http://www.loc.gov/premis/rdf/v1#hasEventDateTime> "${header.FcrepoDateTime}"^^<http://www.w3.org/2001/XMLSchema#dateTime> .
+<${header.AuditEventUri}> <http://www.loc.gov/premis/rdf/v1#hasEventRelatedObject> <${header.FcrepoUri}> .
+<${header.AuditEventUri}> <http://www.loc.gov/premis/rdf/v1#hasEventRelatedAgent> "${header.FcrepoUser}"^^<http://www.w3.org/2001/XMLSchema#string>.
+<${header.AuditEventUri}> <http://www.loc.gov/premis/rdf/v1#hasEventRelatedAgent> "${header.FcrepoUserAgent}"^^<http://www.w3.org/2001/XMLSchema#string> .
+<${header.AuditEventUri}> <http://www.loc.gov/premis/rdf/v1#hasEventType> <${header.AuditEventType}> .
         ]]></simple>
       </setBody>
       <to uri="activemq:queue:audit.triplestore"/>
@@ -111,11 +111,11 @@
 
     <!--
     Expected headers:
-    * CamelAuditEventUri
-    * CamelAuditEventType
-    * CamelFcrepoUser
-    * CamelFcrepoUri
-    * CamelFcrepoDateTime
+    * AuditEventUri
+    * AuditEventType
+    * FcrepoUser
+    * FcrepoUri
+    * FcrepoDateTime
     Expected body format:
     * (None)
     Expected beans:
@@ -126,7 +126,7 @@
       <setBody>
         <constant><![CDATA[
           INSERT INTO history (event_uri, event_type, username, resource_uri, timestamp)
-          VALUES (:?CamelAuditEventUri, :?CamelAuditEventType, :?CamelFcrepoUser, :?CamelFcrepoUri, (:?CamelFcrepoDateTime)::timestamp with time zone)
+          VALUES (:?AuditEventUri, :?AuditEventType, :?FcrepoUser, :?FcrepoUri, (:?FcrepoDateTime)::timestamp with time zone)
           ]]></constant>
       </setBody>
       <to uri="jdbc:auditDatabase?useHeadersAsParameters=true"/>
@@ -143,19 +143,19 @@
     <route id="edu.umd.lib.camel.routes.queue.audit.triplestore">
       <from uri="activemq:audit.triplestore"/>
       <removeHeaders pattern="*"/>
-      <setHeader headerName="Content-Type">
+      <setHeader name="Content-Type">
         <constant>application/sparql-update</constant>
       </setHeader>
-      <setHeader headerName="CamelHttpMethod">
+      <setHeader name="CamelHttpMethod">
         <constant>POST</constant>
       </setHeader>
-      <setHeader headerName="CamelHttpUri">
+      <setHeader name="CamelHttpUri">
         <simple>${sysenv.AUDIT_TRIPLESTORE_UPDATE_URI}</simple>
       </setHeader>
       <setBody>
         <simple>INSERT DATA { ${body} }</simple>
       </setBody>
-      <to uri="http4:triplestore"/>
+      <to uri="http:triplestore"/>
     </route>
 
   </routeContext>

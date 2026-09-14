@@ -63,8 +63,8 @@
   <routeContext xmlns="http://camel.apache.org/schema/spring" id="FixityChecking">
     <!--
     Expects headers:
-    * CamelFcrepoPath
-    * CamelFcrepoUri
+    * FcrepoPath
+    * FcrepoUri
 
     Expects environment variables:
     * REPO_INTERNAL_URL
@@ -75,49 +75,49 @@
     -->
     <route id="edu.umd.lib.camel.routes.queue.fixity">
       <from uri="activemq:fixity"/>
-      <setHeader headerName="CamelHttpUri">
-        <simple>${sysenv.REPO_INTERNAL_URL}${header.CamelFcrepoPath}</simple>
+      <setHeader name="CamelHttpUri">
+        <simple>${sysenv.REPO_INTERNAL_URL}${header.FcrepoPath}</simple>
       </setHeader>
-      <setHeader headerName="CamelHttpMethod">
+      <setHeader name="CamelHttpMethod">
         <constant>HEAD</constant>
       </setHeader>
       <process ref="addBearerAuthorization"/>
-      <to uri="http4:fcrepo"/>
+      <to uri="http:fcrepo"/>
       <filter>
         <simple>${header.Link} contains '&lt;http://www.w3.org/ns/ldp#NonRDFSource>;rel="type"'</simple>
-        <log loggingLevel="DEBUG" message="${header.CamelFcrepoUri} is a binary, proceeding with fixity check"/>
+        <log loggingLevel="DEBUG" message="${header.FcrepoUri} is a binary, proceeding with fixity check"/>
         <!-- TODO: get the fixity endpoint dynamically from the resource -->
-        <setHeader headerName="CamelHttpUri">
-          <simple>${sysenv.REPO_INTERNAL_URL}${header.CamelFcrepoPath}/fcr:fixity</simple>
+        <setHeader name="CamelHttpUri">
+          <simple>${sysenv.REPO_INTERNAL_URL}${header.FcrepoPath}/fcr:fixity</simple>
         </setHeader>
-        <setHeader headerName="CamelHttpMethod">
+        <setHeader name="CamelHttpMethod">
           <constant>GET</constant>
         </setHeader>
         <!-- must use RDF/XML so we can do a quick check of success or failure using XPath -->
-        <setHeader headerName="Accept">
+        <setHeader name="Accept">
           <constant>application/rdf+xml</constant>
         </setHeader>
-        <setHeader headerName="X-Forwarded-Host">
+        <setHeader name="X-Forwarded-Host">
           <simple>${bean:repoExternalURL.authority}</simple>
         </setHeader>
-        <setHeader headerName="X-Forwarded-Proto">
+        <setHeader name="X-Forwarded-Proto">
           <simple>${bean:repoExternalURL.protocol}</simple>
         </setHeader>
-        <removeHeaders pattern="CamelFcrepo*" excludePattern="CamelFcrepoUri"/>
+        <removeHeaders pattern="Fcrepo*" excludePattern="FcrepoUri"/>
         <setBody>
           <constant/>
         </setBody>
         <log loggingLevel="DEBUG" message="Fixity check request sent to ${header.CamelHttpUri}"/>
-        <to uri="http4:fcrepo"/>
+        <to uri="http:fcrepo"/>
         <log loggingLevel="DEBUG" message="Fixity check raw result: ${in.body}"/>
         <choice>
           <when>
             <xpath>/rdf:RDF/rdf:Description/premis:hasEventOutcome[text()='SUCCESS']</xpath>
-            <log loggingLevel="INFO" message="Fixity check succeeded for ${header.CamelFcrepoUri}"/>
+            <log loggingLevel="INFO" message="Fixity check succeeded for ${header.FcrepoUri}"/>
             <to uri="direct:fixity.SuccessDistribution"/>
           </when>
           <otherwise>
-            <log loggingLevel="INFO" message="Fixity check failed for ${header.CamelFcrepoUri}"/>
+            <log loggingLevel="INFO" message="Fixity check failed for ${header.FcrepoUri}"/>
             <to uri="direct:fixity.FailureDistribution"/>
           </otherwise>
         </choice>
@@ -159,13 +159,13 @@
     -->
     <route id="edu.umd.lib.camel.routes.fixity.CreateAuditRecord">
       <from uri="direct:fixity.CreateAuditRecord"/>
-      <setHeader headerName="CamelAuditEventId">
+      <setHeader name="CamelAuditEventId">
         <groovy>"urn:uuid:" + UUID.randomUUID().toString()</groovy>
       </setHeader>
-      <setHeader headerName="CamelAuditEventUri">
+      <setHeader name="CamelAuditEventUri">
         <simple>${sysenv.AUDIT_EVENT_BASE_URI}${header.CamelAuditEventId}</simple>
       </setHeader>
-      <setHeader headerName="CamelSparqlQueryBinding-URI-eventUri">
+      <setHeader name="CamelSparqlQueryBinding-URI-eventUri">
         <header>CamelAuditEventUri</header>
       </setHeader>
       <log loggingLevel="INFO" message="Fixity check event URI: ${header.CamelAuditEventUri}"/>
@@ -190,7 +190,7 @@
     <route id="edu.umd.lib.camel.routes.fixity.CreateLogfileEntry">
       <from uri="direct:fixity.CreateLogfileEntry"/>
       <process ref="fixityLogSparqlProcessor"/>
-      <setHeader headerName="CamelFileName">
+      <setHeader name="CamelFileName">
         <groovy><![CDATA[
         import java.text.SimpleDateFormat
         (new SimpleDateFormat("yyyy-MM-dd-'fixity.log'")).format(new Date())
@@ -201,7 +201,7 @@
 
     <!--
     Expects headers:
-    * CamelFcrepoUri
+    * FcrepoUri
 
     Expects environment variables:
     * SMTP_SERVER
@@ -211,17 +211,17 @@
     -->
     <route id="edu.umd.lib.camel.routes.fixity.SendFailureNotification">
       <from uri="direct:fixity.SendFailureNotification"/>
-      <removeHeaders pattern="*" excludePattern="CamelFcrepoUri"/>
-      <setHeader headerName="To">
+      <removeHeaders pattern="*" excludePattern="FcrepoUri"/>
+      <setHeader name="To">
         <constant>lib-fcrepo-notify@umd.edu</constant>
       </setHeader>
-      <setHeader headerName="From">
+      <setHeader name="From">
         <simple>fcrepo@${bean:repoExternalURL.host}</simple>
       </setHeader>
-      <setHeader headerName="Subject">
-        <simple>[${bean:repoExternalURL.host}] Fixity Check Failure: ${header.CamelFcrepoUri}</simple>
+      <setHeader name="Subject">
+        <simple>[${bean:repoExternalURL.host}] Fixity Check Failure: ${header.FcrepoUri}</simple>
       </setHeader>
-      <setHeader headerName="Content-Type">
+      <setHeader name="Content-Type">
         <constant>text/plain</constant>
       </setHeader>
       <!-- use a recipient list instead of a simple <to> element
