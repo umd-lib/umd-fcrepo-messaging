@@ -105,8 +105,8 @@
         <Call name="include">
           <Arg>
             <Array type="java.lang.String">
-              <Item>127.0.0.1</Item>
-              <Item>::1</Item>
+              <!-- this is all the way open; only do this behind other authnz -->
+              <Item>0.0.0.0/0</Item>
             </Array>
           </Arg>
         </Call>
