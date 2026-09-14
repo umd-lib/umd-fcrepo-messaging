@@ -56,6 +56,18 @@ The ActiveMQ web admin console will be at <http://localhost:8161/admin/>
 * [STOMP] server and port: `localhost:61613`
 * [OpenWire] server and port: `localhost:61616`
 
+## Documentation
+
+To generate Markdown documentation with PlantUML diagrams of the routes, run
+
+```zsh
+mvn antrun:run
+```
+
+This will generate a *.md file for each *.xml file in the Camel routes
+configuration. Generated documentation will be in the `docs/routing`
+directory.
+
 ## History
 
 This code comes from the
