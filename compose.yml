@@ -1,0 +1,12 @@
+services:
+  activemq:
+    image: docker.lib.umd.edu/fcrepo-messaging:latest
+    build: .
+    volumes:
+      - activemq-data:/var/opt/activemq
+    ports:
+      - "61616:61616"
+      - "61613:61613"
+      - "8161:8161"
+volumes:
+  activemq-data:

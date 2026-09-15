@@ -19,7 +19,9 @@ UMD Libraries Fedora Messaging Infrastructure
 
 ## Docker Image
 
-This repository contains a [Dockerfile](Dockerfile) for creating a Docker image.
+This repository contains a [Dockerfile](Dockerfile) for creating a 
+Docker image, and a [compose.yml](compose.yml) for quickly running the 
+application.
 
 ### Volumes
 
@@ -39,33 +41,14 @@ This repository contains a [Dockerfile](Dockerfile) for creating a Docker image.
 
 ### Build
 
-The [POM file](pom.xml) includes the [fabric8io docker-maven-plugin], so 
-creating the image is as simple as running:
+Use Docker Compose to build and run the application.
 
-```bash
-mvn docker:build
+```zsh
+docker compose build
 ```
 
-The resulting image will be tagged as `docker.lib.umd.edu/fcrepo-messaging`,
-plus a version string. If the `project.version` property defined in the POM
-file is a SNAPSHOT, the version string will be "latest". Otherwise, it will
-be the `project.version` property value from the POM file.
-
-**Note:** You need to push the image to the docker registry to use it in the
-docker swarm setup for local development. Otherwise, docker swarm will pull
-the image from the registry instead. This is especially confusing when building
-images with "latest" tag that not permanent. Alternatively, if we configure
-our local docker stack to use image names without the `docker.lib.umd.edu/`
-prefix, docker swarm will use the locally built image.
-
-### Run
-
-TODO: specify required environment to run this image
-
-```bash
-docker run -it --rm --name docker.lib.umd.edu/fcrepo-messaging \
-    -p 61616:61616 -p 61613:61613 -p 8161:8161 \
-    docker.lib.umd.edu/fcrepo-messaging
+```zsh
+docker compose up -d
 ```
 
 The ActiveMQ web admin console will be at <http://localhost:8161/admin/>
@@ -93,5 +76,4 @@ See the [LICENSE](LICENSE) file for license rights and limitations (Apache 2.0).
 [OpenWire]: https://activemq.apache.org/openwire.html
 [umd-camel-processors]: https://github.com/umd-lib/umd-camel-processors
 [umd-fcrepo-auth-utils]: https://github.com/umd-lib/umd-fcrepo-auth-utils
-[fabric8io docker-maven-plugin]: https://dmp.fabric8.io/
 [JMX]: https://activemq.apache.org/jmx#activemq-mbeans-reference
