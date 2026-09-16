@@ -8,27 +8,27 @@
       <from uri="activemq:index"/>
       <choice>
         <when>
-          <header>CamelFcrepoIndexingDestinations</header>
-          <log loggingLevel="DEBUG" message="CamelFcrepoIndexingDestinations header found: ${header.CamelFcrepoIndexingDestinations}"/>
+          <header>FcrepoIndexingDestinations</header>
+          <log loggingLevel="DEBUG" message="FcrepoIndexingDestinations header found: ${header.FcrepoIndexingDestinations}"/>
         </when>
         <otherwise>
-          <log loggingLevel="DEBUG" message="No CamelFcrepoIndexingDestinations header found, using default"/>
-          <setHeader headerName="CamelFcrepoIndexingDestinations">
+          <log loggingLevel="DEBUG" message="No FcrepoIndexingDestinations header found, using default"/>
+          <setHeader name="FcrepoIndexingDestinations">
             <constant>activemq:index.triplestore,activemq:index.solr</constant>
           </setHeader>
         </otherwise>
       </choice>
-      <log loggingLevel="INFO" message="Indexing destinations: ${header.CamelFcrepoIndexingDestinations}"/>
+      <log loggingLevel="INFO" message="Indexing destinations: ${header.FcrepoIndexingDestinations}"/>
       <recipientList ignoreInvalidEndpoints="true" parallelProcessing="true">
-        <header>CamelFcrepoIndexingDestinations</header>
+        <header>FcrepoIndexingDestinations</header>
       </recipientList>
     </route>
 
     <route id="edu.umd.lib.camel.routes.queue.reindex">
       <from uri="activemq:reindex"/>
-      <log loggingLevel="INFO" message="Reindexing resource ${header.CamelFcrepoUri}"/>
+      <log loggingLevel="INFO" message="Reindexing resource ${header.FcrepoUri}"/>
       <!-- a request to reindex should be treated the same as if the resource was updated -->
-      <setHeader headerName="CamelFcrepoEventName">
+      <setHeader name="FcrepoEventName">
         <constant>update</constant>
       </setHeader>
       <to uri="activemq:index"/>

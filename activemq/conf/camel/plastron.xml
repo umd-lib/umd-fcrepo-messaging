@@ -10,17 +10,17 @@
       <filter>
         <header>PlastronStatusURL</header>
         <removeHeaders pattern="CamelHttp*"/>
-        <setHeader headerName="CamelHttpUri">
+        <setHeader name="CamelHttpUri">
           <header>PlastronStatusURL</header>
         </setHeader>
-        <setHeader headerName="CamelHttpMethod">
+        <setHeader name="CamelHttpMethod">
           <constant>POST</constant>
         </setHeader>
-        <setHeader headerName="Content-Type">
+        <setHeader name="Content-Type">
           <constant>application/json</constant>
         </setHeader>
         <log loggingLevel="DEBUG" message="Sending ${body} to ${header.CamelHttpUri}"/>
-        <to uri="http4://archelon"/>
+        <to uri="http://archelon"/>
       </filter>
     </route>
   </routeContext>

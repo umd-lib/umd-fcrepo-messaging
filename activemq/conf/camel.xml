@@ -1,0 +1,123 @@
+<beans
+  xmlns="http://www.springframework.org/schema/beans"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+    http://camel.apache.org/schema/spring http://camel.apache.org/schema/spring/camel-spring.xsd">
+
+  <!-- Allows us to use environment variables in ${...} expressions in the Spring configuration (this includes in the Camel routes) -->
+  <bean class="org.springframework.context.support.PropertySourcesPlaceholderConfigurer">
+    <property name="environment">
+      <bean class="org.springframework.core.env.StandardEnvironment"/>
+    </property>
+  </bean>
+
+  <!-- Camel-based message routing -->
+  <!-- common Authorization header generator -->
+  <bean id="addBearerAuthorization" class="edu.umd.lib.camel.processors.AddBearerAuthorizationProcessor">
+    <property name="authTokenService">
+      <bean class="edu.umd.lib.fcrepo.services.AuthTokenService">
+        <property name="secret" value="${JWT_SECRET}"/>
+      </bean>
+    </property>
+  </bean>
+
+  <!-- externally-facing repository URL -->
+  <bean id="repoExternalURL" class="java.net.URL">
+    <constructor-arg value="${REPO_EXTERNAL_URL}"/>
+  </bean>
+
+  <!-- ActiveMQ component pointing to the embedded broker in fcrepo-webapp -->
+  <bean id="fcrepomq" class="org.apache.camel.component.activemq6.ActiveMQComponent">
+    <property name="configuration">
+      <bean class="org.apache.camel.component.jms.JmsConfiguration">
+        <property name="connectionFactory">
+          <bean class="org.apache.activemq.pool.PooledConnectionFactory">
+            <property name="maxConnections" value="8" />
+            <property name="connectionFactory">
+              <bean class="org.apache.activemq.ActiveMQConnectionFactory">
+                <property name="brokerURL" value="${REPO_OPENWIRE_ENDPOINT}"/>
+              </bean>
+            </property>
+          </bean>
+        </property>
+        <property name="transacted" value="false"/>
+      </bean>
+    </property>
+  </bean>
+
+  <!-- internal ActiveMQ instance -->
+  <bean id="activemq" class="org.apache.camel.component.activemq6.ActiveMQComponent">
+    <property name="configuration">
+      <bean class="org.apache.camel.component.jms.JmsConfiguration">
+        <property name="connectionFactory">
+          <bean class="org.apache.activemq.pool.PooledConnectionFactory">
+            <property name="maxConnections" value="8" />
+            <property name="connectionFactory">
+              <bean class="org.apache.activemq.ActiveMQConnectionFactory">
+                <property name="brokerURL" value="vm://localhost:61616"/>
+              </bean>
+            </property>
+          </bean>
+        </property>
+        <property name="transacted" value="false"/>
+      </bean>
+    </property>
+  </bean>
+
+  <!-- Camel Routing -->
+  <import resource="camel/routes.xml"/>
+  <import resource="camel/indexing.xml"/>
+  <import resource="camel/auditing.xml"/>
+  <import resource="camel/fixity.xml"/>
+  <import resource="camel/triplestore.xml"/>
+  <import resource="camel/solr.xml"/>
+  <import resource="camel/plastron.xml"/>
+
+  <!-- must enable stream caching since multiple downstream endpoints need to each read the message body in parallel -->
+  <camelContext xmlns="http://camel.apache.org/schema/spring" id="fcrepo" streamCache="true">
+    <routeContextRef ref="EventProcessing"/>
+    <routeContextRef ref="Indexing"/>
+    <routeContextRef ref="Auditing"/>
+    <routeContextRef ref="FixityChecking"/>
+    <routeContextRef ref="Solr"/>
+    <routeContextRef ref="Triplestore"/>
+    <routeContextRef ref="Plastron"/>
+
+    <onException>
+      <exception>java.lang.Exception</exception>
+      <handled>
+        <constant>true</constant>
+      </handled>
+      <!-- add some extra error diagnostics to the headers -->
+      <setHeader name="FailureRouteId">
+        <exchangeProperty>CamelFailureRouteId</exchangeProperty>
+      </setHeader>
+      <setHeader name="FailureEndpoint">
+        <exchangeProperty>CamelFailureEndpoint</exchangeProperty>
+      </setHeader>
+      <setHeader name="ExceptionMessage">
+        <simple>${exchangeProperty.CamelExceptionCaught.message}</simple>
+      </setHeader>
+      <setHeader name="ExceptionStackTrace">
+        <groovy>
+          import static org.apache.commons.lang3.exception.ExceptionUtils.getStackTrace
+          result = getStackTrace(exchange.getProperty("CamelExceptionCaught"))
+        </groovy>
+      </setHeader>
+      <setHeader name="JMSCorrelationID">
+        <groovy>UUID.randomUUID().toString()</groovy>
+      </setHeader>
+      <log loggingLevel="ERROR" message="Failed endpoint: ${header.FailureEndpoint}"/>
+      <log loggingLevel="ERROR" message="${header.ExceptionMessage}"/>
+      <setProperty name="errorQueue">
+        <groovy>"activemq:errors." + headers["FailureRouteId"].replace("edu.umd.lib.camel.", "", )</groovy>
+      </setProperty>
+      <log loggingLevel="ERROR" message="Message routed to ${exchangeProperty.errorQueue} with JMS Correlation ID ${header.JMSCorrelationID}"/>
+      <recipientList>
+        <exchangeProperty>errorQueue</exchangeProperty>
+      </recipientList>
+      <stop/>
+    </onException>
+
+  </camelContext>
+</beans>

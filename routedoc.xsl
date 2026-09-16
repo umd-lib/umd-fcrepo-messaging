@@ -68,7 +68,7 @@
   <xsl:template match="camel:route">
     <xsl:text>### </xsl:text><xsl:value-of select="@id"/><xsl:text>&lf;</xsl:text>
     <xsl:text>&lf;</xsl:text>
-    <xsl:value-of select="normalize-space(camel:description)"/><xsl:text>&lf;</xsl:text>
+    <xsl:value-of select="normalize-space(@description)"/><xsl:text>&lf;</xsl:text>
     <xsl:text>&lf;</xsl:text>
     <xsl:text>#### Source Endpoint&lf;&lf;</xsl:text>
     <xsl:text>* `</xsl:text><xsl:value-of select="camel:from/@uri"/><xsl:text>`&lf;</xsl:text>
@@ -156,6 +156,9 @@
     <xsl:variable name="queryString" select="substring-after($uri, '?')"/>
     <xsl:choose>
       <xsl:when test="starts-with($uri, 'activemq:')">
+        <xsl:text>queue</xsl:text>
+      </xsl:when>
+      <xsl:when test="starts-with($uri, 'fcrepomq:')">
         <xsl:text>queue</xsl:text>
       </xsl:when>
       <xsl:when test="starts-with($uri, 'jdbc:')">
@@ -250,7 +253,7 @@
     </xsl:choose>
     <xsl:text> </xsl:text>
     <xsl:choose>
-      <xsl:when test="camel:description"><xsl:value-of select="camel:description"/></xsl:when>
+      <xsl:when test="@description"><xsl:value-of select="@description"/></xsl:when>
       <xsl:otherwise><xsl:apply-templates select="camel:simple|camel:header"/></xsl:otherwise>
     </xsl:choose>
     <xsl:text>&lf;</xsl:text>
@@ -263,9 +266,21 @@
   </xsl:template>
 
   <xsl:template match="camel:filter">
+    <xsl:if test="@note">
+      <xsl:text>note over </xsl:text>
+      <xsl:value-of select="puml:quote(ancestor::camel:route/@id)"/>
+      <xsl:text>&lf;</xsl:text>
+      <xsl:call-template name="puml:multiline-text">
+        <xsl:with-param name="words" select="tokenize(normalize-space(@note))"/>
+        <xsl:with-param name="current-length">0</xsl:with-param>
+        <xsl:with-param name="max-length">60</xsl:with-param>
+      </xsl:call-template>
+      <xsl:text>&lf;</xsl:text>
+      <xsl:text>endnote&lf;</xsl:text>
+    </xsl:if>
     <xsl:text>opt </xsl:text>
     <xsl:choose>
-      <xsl:when test="camel:description"><xsl:value-of select="camel:description"/></xsl:when>
+      <xsl:when test="@description"><xsl:value-of select="@description"/></xsl:when>
       <xsl:otherwise><xsl:apply-templates select="camel:simple|camel:header"/></xsl:otherwise>
     </xsl:choose>
     <xsl:text>&lf;</xsl:text>
@@ -291,7 +306,7 @@
 
   <xsl:template match="camel:to">
     <xsl:choose>
-      <xsl:when test="starts-with(@uri, 'http4:')">
+      <xsl:when test="starts-with(@uri, 'http:')">
         <!-- synchronous -->
         <xsl:call-template name="puml:message">
           <xsl:with-param name="from" select="ancestor::camel:route/@id"/>
@@ -336,7 +351,7 @@
       <xsl:with-param name="to" select="ancestor::camel:route/@id"/>
       <xsl:with-param name="label">
         <xsl:text>Set header </xsl:text>
-        <xsl:value-of select="@headerName"/>
+        <xsl:value-of select="@name"/>
         <xsl:choose>
           <xsl:when test="camel:header">
             <xsl:text> to </xsl:text>
@@ -356,7 +371,7 @@
       <xsl:with-param name="to" select="ancestor::camel:route/@id"/>
       <xsl:with-param name="label">
         <xsl:text>Set property </xsl:text>
-        <xsl:value-of select="@propertyName"/>
+        <xsl:value-of select="@name"/>
         <xsl:choose>
           <xsl:when test="camel:header">
             <xsl:text> to </xsl:text>
@@ -375,7 +390,17 @@
       <xsl:with-param name="from" select="ancestor::camel:route/@id"/>
       <xsl:with-param name="to" select="ancestor::camel:route/@id"/>
       <xsl:with-param name="label">
-        <xsl:text>Remove headers matching </xsl:text><xsl:value-of select="@pattern"/>
+        <xsl:choose>
+          <xsl:when test="@pattern = '*'">
+            <xsl:text>Remove all headers</xsl:text>
+          </xsl:when>
+          <xsl:otherwise>
+            <xsl:text>Remove headers matching </xsl:text><xsl:value-of select="@pattern"/>
+          </xsl:otherwise>
+        </xsl:choose>
+        <xsl:if test="@excludePattern">
+          <xsl:text> except </xsl:text><xsl:value-of select="@excludePattern"/>
+        </xsl:if>
       </xsl:with-param>
     </xsl:call-template>
   </xsl:template>
@@ -410,13 +435,13 @@
       <xsl:with-param name="from" select="ancestor::camel:route/@id"/>
       <xsl:with-param name="to" select="@ref"/>
       <xsl:with-param name="returns">
-        <xsl:if test="starts-with(camel:description, 'returns: ')">
-          <xsl:value-of select="substring-after(camel:description, 'returns: ')"/>
+        <xsl:if test="starts-with(@description, 'returns: ')">
+          <xsl:value-of select="substring-after(@description, 'returns: ')"/>
         </xsl:if>
       </xsl:with-param>
       <xsl:with-param name="process">
-        <xsl:if test="camel:description and not(starts-with(camel:description, 'returns: '))">
-          <xsl:value-of select="camel:description"/>
+        <xsl:if test="@description and not(starts-with(@description, 'returns: '))">
+          <xsl:value-of select="@description"/>
         </xsl:if>
       </xsl:with-param>
     </xsl:call-template>
@@ -498,6 +523,35 @@
       <xsl:value-of select="$returns"/>
     </xsl:if>
     <xsl:text>&lf;</xsl:text>
+  </xsl:template>
+
+  <xsl:template name="puml:multiline-text">
+    <xsl:param name="words"/>
+    <xsl:param name="current-length"/>
+    <xsl:param name="max-length"/>
+    <xsl:if test="not(empty($words))">
+      <xsl:choose>
+        <xsl:when test="$current-length >= $max-length">
+          <xsl:text>&lf;</xsl:text>
+          <xsl:value-of select="$words[1]"/>
+          <xsl:text> </xsl:text>
+          <xsl:call-template name="puml:multiline-text">
+            <xsl:with-param name="words" select="subsequence($words, 2)"/>
+            <xsl:with-param name="current-length" select="string-length($words[1])"/>
+            <xsl:with-param name="max-length" select="$max-length"/>
+          </xsl:call-template>
+        </xsl:when>
+        <xsl:otherwise>
+          <xsl:value-of select="$words[1]"/>
+          <xsl:text> </xsl:text>
+          <xsl:call-template name="puml:multiline-text">
+            <xsl:with-param name="words" select="subsequence($words, 2)"/>
+            <xsl:with-param name="current-length" select="$current-length + 1 + string-length($words[1])"/>
+            <xsl:with-param name="max-length" select="$max-length"/>
+          </xsl:call-template>
+        </xsl:otherwise>
+      </xsl:choose>
+    </xsl:if>
   </xsl:template>
 
 </xsl:stylesheet>

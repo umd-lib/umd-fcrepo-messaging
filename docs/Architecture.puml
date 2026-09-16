@@ -1,0 +1,41 @@
+@startuml
+'https://plantuml.com/component-diagram
+
+interface openwire as "OpenWire"
+cloud fcrepo {
+  component embedded_amq as "ActiveMQ" {
+    queue fedora
+  }
+}
+embedded_amq - openwire
+
+node ActiveMQ {
+  node Camel {
+    component fcrepomq_bean as "fcrepomq" <<Bean>>
+    component amq_bean as "activemq" <<Bean>>
+    component amq_component as "ActiveMQComponent" <<Component>>
+
+    ' hidden connection to fix layout
+    fcrepomq_bean -r[hidden]-> amq_bean
+
+    amq_component <|.. fcrepomq_bean
+    amq_component <|.. amq_bean
+
+    interface fcrepomq as " " <<Endpoint>>
+    interface activemq as " " <<Endpoint>>
+    amq_bean -- activemq
+    fcrepomq_bean -- fcrepomq
+    component route <<Route>>
+    fcrepomq )-- route
+    activemq )-- route
+
+  }
+  interface vm_openwire as "OpenWire"
+  amq_bean -( vm_openwire
+  node JMS as "JMS (vm://localhost)"
+  vm_openwire - JMS
+}
+
+openwire )- fcrepomq_bean
+
+@enduml
