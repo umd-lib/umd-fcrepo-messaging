@@ -39,6 +39,42 @@ application.
 | 61613       | [STOMP] messaging          |
 | 61616       | [OpenWire] messaging       |
 
+### Environment Variables
+
+There are a number of environment variables that are used to configure the
+umd-fcrepo-messaging application. Most of these have defaults defined in the
+Docker compose.yml file. The only value that needs to be set separately in an
+`.env` file is `JWT_SECRET`. This should be the same `JWT_SECRET` as used by
+the [umd-fcrepo] development stack.
+
+The defaults in `compose.yml` are chosen assuming the container is running on
+the same network as the other services in the [umd-fcrepo] development stack.
+If you are running this application outside of that stack, you will need to
+adjust the URLs.
+
+| Name                           | Default in compose.yml                       |
+|--------------------------------|----------------------------------------------|
+| `AUDIT_DB_HOST`                | audit-db                                     |
+| `AUDIT_DB_PORT`                | 5432                                         |
+| `AUDIT_DB_NAME`                | fcrepo_audit                                 |
+| `AUDIT_DB_USERNAME`            | camel                                        |
+| `AUDIT_DB_PASSWORD`            | camel                                        |
+| `AUDIT_EVENT_BASE_URI`         | http://fcrepo-local:8080/fcrepo/audit/       |
+| `AUDIT_TRIPLESTORE_UPDATE_URI` | http://fuseki:3030/fcrepo-audit/update       |
+| `BATCH_USER`                   | plastron                                     |
+| `CAMEL_LOG_LEVEL`              | INFO                                         |
+| `FIXITY_LOG_DIR`               | /tmp                                         |
+| `INDEX_TRIPLESTORE_UPDATE_URI` | http://fuseki:3030/fedora4/update            |
+| `JWT_SECRET`                   |                                              |
+| `LOG_LEVEL`                    | WARN                                         |
+| `REPO_EXTERNAL_URL`            | http://fcrepo-local:8080/fcrepo/rest         |
+| `REPO_INTERNAL_URL`            | http://webapp:8080/fcrepo/rest               |
+| `REPO_OPENWIRE_ENDPOINT`       | tcp://webapp:61616                           |
+| `SMTP_SERVER`                  | mail:8025                                    |
+| `SOLR_UPDATE_ENDPOINT`         | http://solr-fcrepo:8983/solr/fcrepo/update   |
+| `SOLRIZER_ENDPOINT`            | http://solrizer:5000/doc                     |
+| `UMD_LIB_LOG_LEVEL`            | DEBUG                                        |
+
 ### Build
 
 Use Docker Compose to build and run the application.

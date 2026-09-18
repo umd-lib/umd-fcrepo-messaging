@@ -4,9 +4,35 @@ services:
     build: .
     volumes:
       - activemq-data:/var/opt/activemq
+      - fixity-log-data:/var/log/fixity
+      # ephemeral storage
+      - type: tmpfs
+        target: /tmp/activemq
+    environment:
+      - AUDIT_DB_HOST=audit-db
+      - AUDIT_DB_PORT=5432
+      - AUDIT_DB_NAME=fcrepo_audit
+      - AUDIT_DB_USERNAME=camel
+      - AUDIT_DB_PASSWORD=camel
+      - AUDIT_EVENT_BASE_URI=http://fcrepo-local:8080/fcrepo/audit/
+      - AUDIT_TRIPLESTORE_UPDATE_URI=http://fuseki:3030/fcrepo-audit/update
+      - BATCH_USER=plastron
+      - CAMEL_LOG_LEVEL=INFO
+      - FIXITY_LOG_DIR=/tmp
+      - INDEX_TRIPLESTORE_UPDATE_URI=http://fuseki:3030/fedora4/update
+      - JWT_SECRET
+      - LOG_LEVEL=WARN
+      - REPO_EXTERNAL_URL=http://fcrepo-local:8080/fcrepo/rest
+      - REPO_INTERNAL_URL=http://webapp:8080/fcrepo/rest
+      - REPO_OPENWIRE_ENDPOINT=tcp://webapp:61616
+      - SMTP_SERVER=mail:8025
+      - SOLR_UPDATE_ENDPOINT=http://solr-fcrepo:8983/solr/fcrepo/update
+      - SOLRIZER_ENDPOINT=http://solrizer:5000/doc
+      - UMD_LIB_LOG_LEVEL=DEBUG
     ports:
       - "61616:61616"
       - "61613:61613"
       - "8161:8161"
 volumes:
   activemq-data:
+  fixity-log-data:
