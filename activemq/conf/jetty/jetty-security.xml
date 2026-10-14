@@ -48,56 +48,6 @@
     <Arg>
       <!-- Outermost: only allow configured client IPs to reach the console. -->
       <New class="org.eclipse.jetty.server.handler.InetAccessHandler">
-        <Set name="handler">
-
-          <!-- Path-based authorization; its tail is linked to Contexts by insertHandler. -->
-          <New id="consoleSecurityHandler" class="org.eclipse.jetty.security.SecurityHandler$PathMapped">
-            <Set name="loginService"><Ref refid="jaasLoginService"/></Set>
-            <Set name="identityService">
-              <New class="org.eclipse.jetty.security.DefaultIdentityService"/>
-            </Set>
-            <Set name="authenticator">
-              <New class="org.eclipse.jetty.security.authentication.BasicAuthenticator"/>
-            </Set>
-
-            <!-- Web console UI (/admin/*) is restricted to the admins role. -->
-            <Call name="put">
-              <Arg>/admin/*</Arg>
-              <Arg>
-                <Call class="org.eclipse.jetty.security.Constraint" name="from">
-                  <Arg><Array type="java.lang.String"><Item>admins</Item></Array></Arg>
-                </Call>
-              </Arg>
-            </Call>
-
-            <!-- Jolokia JMX bridge (/api/jolokia/*) is restricted to admins   -->
-            <!-- to prevent privilege escalation via JMX.                      -->
-            <Call name="put">
-              <Arg>/api/jolokia/*</Arg>
-              <Arg>
-                <Call class="org.eclipse.jetty.security.Constraint" name="from">
-                  <Arg><Array type="java.lang.String"><Item>admins</Item></Array></Arg>
-                </Call>
-              </Arg>
-            </Call>
-
-            <!-- Everything else requires an authenticated user or admin. -->
-            <Call name="put">
-              <Arg>/*</Arg>
-              <Arg>
-                <Call class="org.eclipse.jetty.security.Constraint" name="from">
-                  <Arg>
-                    <Array type="java.lang.String">
-                      <Item>users</Item>
-                      <Item>admins</Item>
-                    </Array>
-                  </Arg>
-                </Call>
-              </Arg>
-            </Call>
-          </New>
-        </Set>
-
         <!-- Allowed clients. With the default connector host binding of        -->
         <!-- 127.0.0.1 only loopback is reachable anyway; broaden the includes  -->
         <!-- (e.g. 10.0.0.0/8, or 192.168.1.0/24|/api) if the bind address is   -->
