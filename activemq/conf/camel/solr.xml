@@ -22,7 +22,7 @@
           <to uri="direct:solr.Index"/>
         </when>
         <when description="resource that was deleted from the repository">
-          <simple>${header.FcrepoEventName} == "delete"</simple>
+          <simple>${header.FcrepoEventName} startsWith "delete"</simple>
           <log loggingLevel="INFO" message="Request to delete ${header.FcrepoUri} from Solr index"/>
           <to uri="direct:solr.Index"/>
         </when>
